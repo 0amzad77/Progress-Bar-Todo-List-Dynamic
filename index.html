@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="src/style.css" />
+    <link rel="shortcut icon" href="/src/assets/icon/todo.png type="image/x-icon" />
+    <script
+      src="https://kit.fontawesome.com/3f464444bc.js"
+      crossorigin="anonymous"
+    ></script>
+    <title>To Do List</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="todo-app">
+        <h1>To Do List</h1>
+        <div class="stat-container">
+          <div class="details">
+            <h3>Keep it Up!</h3>
+            <div id="progressbar">
+              <div id="progress"></div>
+            </div>
+          </div>
+          <div class="stats-number">
+            <p id="number">0/0</p>
+          </div>
+        </div>
+        <span id="error-message" class="error-message"></span>
+        <form action="" class="input-area">
+          <input type="text" id="task-input" placeholder="Add a new task..." />
+          <button type="button" id="add-task-btn">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </form>
+        <div class="todos-container">
+          <ul id="task-list"></ul>
+          <img
+            class="empty-image"
+            src="src/assets/images/To_do_list.webp"
+            alt="Empty state image"
+          />
+        </div>
+      </div>
+    </div>
+    <script src="/src/main.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tsparticles/confetti@3.0.3/tsparticles.confetti.bundle.min.js"></script>
+  </body>
+</html>
