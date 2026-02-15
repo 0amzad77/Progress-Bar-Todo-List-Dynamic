@@ -218,5 +218,37 @@ details h3 {
   font-size: 0.9rem;
   margin-top: -10px;
   margin-bottom: 10px;
-  display: none; /* Initially hide the error message */
+  display: none;
+}
+
+.completed-message {
+  display: none;
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ff6f91;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  font-weight: 700;
+  z-index: 1000;
+  white-space: nowrap;
+}
+
+.completed-message.show {
+  display: block;
+  animation: popIn 0.35s ease;
+}
+
+@keyframes popIn {
+  from {
+    transform: translateX(-50%) scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
 }

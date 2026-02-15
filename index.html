@@ -4,7 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="src/style.css" />
-    <link rel="shortcut icon" href="src/assets/icon/todo.png" type="image/x-icon" />
+    <link
+      rel="shortcut icon"
+      href="src/assets/icon/todo.png"
+      type="image/x-icon"
+    />
     <script
       src="https://kit.fontawesome.com/3f464444bc.js"
       crossorigin="anonymous"
@@ -27,6 +31,11 @@
           </div>
         </div>
         <span id="error-message" class="error-message"></span>
+        <div
+          id="completed-message"
+          class="completed-message"
+          aria-live="polite"
+        ></div>
         <form action="" class="input-area">
           <input type="text" id="task-input" placeholder="Add a new task..." />
           <button type="button" id="add-task-btn">

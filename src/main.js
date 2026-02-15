@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const errorMessage = document.getElementById("error-message");
   const progressBar = document.getElementById("progress");
   const progressNumber = document.getElementById("number");
+  const completedMessage = document.getElementById("completed-message");
 
   const toggleEmptyState = () => {
     const hasTasks = tasklist.children.length > 0;
@@ -14,15 +15,25 @@ document.addEventListener("DOMContentLoaded", () => {
   };
   const updateProgress = (checkCompletion = true) => {
     const totalTasks = tasklist.children.length;
-    const completedTaskes = tasklist.querySelectorAll(".task-checkbox:checked",).length;
+    const completedTaskes = tasklist.querySelectorAll(
+      ".task-checkbox:checked",
+    ).length;
 
-    progressBar.style.width = totalTasks? `${(completedTaskes / totalTasks) * 100}%` : "0%";
+    progressBar.style.width = totalTasks
+      ? `${(completedTaskes / totalTasks) * 100}%`
+      : "0%";
     progressNumber.textContent = `${completedTaskes} / ${totalTasks}`;
     if (checkCompletion && totalTasks > 0 && completedTaskes === totalTasks) {
       confettiOptions();
-    }     
+      completedMessage.textContent = "Congratulations! All tasks completed!";
+      completedMessage.classList.add("show");
+      setTimeout(() => {
+        completedMessage.classList.remove("show");
+        completedMessage.textContent = "";
+      }, 3000);
+    }
   };
-const saveTasksToLocalStorage = () => {
+  const saveTasksToLocalStorage = () => {
     const tasks = [];
     tasklist.querySelectorAll("li").forEach((li) => {
       const text = li.querySelector(".task-text").textContent;
@@ -30,13 +41,13 @@ const saveTasksToLocalStorage = () => {
       tasks.push({ text, completed });
     });
     localStorage.setItem("tasks", JSON.stringify(tasks));
-};
-const loadTasksFromLocalStorage = () => {
+  };
+  const loadTasksFromLocalStorage = () => {
     const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
     tasks.forEach((task) => addTask(task.text, task.completed, false));
     toggleEmptyState();
     updateProgress();
-};
+  };
   const addTask = (text, completed = false, checkCompletion = true) => {
     const taskText = text || taskInput.value.trim();
     if (!taskText) {
@@ -44,6 +55,7 @@ const loadTasksFromLocalStorage = () => {
       errorMessage.style.display = "block";
       return;
     }
+
     taskInput.value = "";
     errorMessage.style.display = "none";
     const li = document.createElement("li");
@@ -105,31 +117,31 @@ const loadTasksFromLocalStorage = () => {
 });
 
 const confettiOptions = () => {
-const defaults = {
-  spread: 360,
-  ticks: 100,
-  gravity: 0,
-  decay: 0.94,
-  startVelocity: 30,
-  shapes: ["heart"],
-  colors: ["FFC0CB", "FF69B4", "FF1493", "C71585"],
-};
+  const defaults = {
+    spread: 360,
+    ticks: 100,
+    gravity: 0,
+    decay: 0.94,
+    startVelocity: 30,
+    shapes: ["heart"],
+    colors: ["FFC0CB", "FF69B4", "FF1493", "C71585"],
+  };
 
-confetti({
-  ...defaults,
-  particleCount: 50,
-  scalar: 2,
-});
+  confetti({
+    ...defaults,
+    particleCount: 50,
+    scalar: 2,
+  });
 
-confetti({
-  ...defaults,
-  particleCount: 25,
-  scalar: 3,
-});
+  confetti({
+    ...defaults,
+    particleCount: 25,
+    scalar: 3,
+  });
 
-confetti({
-  ...defaults,
-  particleCount: 10,
-  scalar: 4,
-});
+  confetti({
+    ...defaults,
+    particleCount: 10,
+    scalar: 4,
+  });
 };
