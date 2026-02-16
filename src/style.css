@@ -220,6 +220,9 @@ details h3 {
   margin-bottom: 10px;
   display: none;
 }
+.error-message.show {
+  display: block;
+}
 
 .completed-message {
   display: none;
@@ -240,6 +243,10 @@ details h3 {
 .completed-message.show {
   display: block;
   animation: popIn 0.35s ease;
+}
+.isChecked {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 @keyframes popIn {

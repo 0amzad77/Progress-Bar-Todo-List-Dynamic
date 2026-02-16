@@ -1,3 +1,36 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+  updateDoc,
+  query,
+  orderBy,
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {
+  getAuth,
+  signInAnonymously,
+  onAuthStateChanged,
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCC4EyZh_q-c1qAh-vgS0_PVG4lJFPIhEI",
+  authDomain: "progress-bar-todo-list-dynamic.firebaseapp.com",
+  projectId: "progress-bar-todo-list-dynamic",
+  storageBucket: "progress-bar-todo-list-dynamic.appspot.com",
+  messagingSenderId: "575737944981",
+  appId: "1:575737944981:web:b6b54008bbbe4b89a1b49c",
+  measurementId: "G-WWLBSP63MG",
+};
+
+// Initialize Firebase & Firestore
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 document.addEventListener("DOMContentLoaded", () => {
   const taskInput = document.getElementById("task-input");
   const addTaskBtn = document.getElementById("add-task-btn");
@@ -13,17 +46,19 @@ document.addEventListener("DOMContentLoaded", () => {
     emptyImage.style.display = hasTasks ? "none" : "block";
     tasklist.style.width = hasTasks ? "100%" : "0%";
   };
+
   const updateProgress = (checkCompletion = true) => {
     const totalTasks = tasklist.children.length;
-    const completedTaskes = tasklist.querySelectorAll(
+    const completedTasks = tasklist.querySelectorAll(
       ".task-checkbox:checked",
     ).length;
 
     progressBar.style.width = totalTasks
-      ? `${(completedTaskes / totalTasks) * 100}%`
+      ? `${(completedTasks / totalTasks) * 100}%`
       : "0%";
-    progressNumber.textContent = `${completedTaskes} / ${totalTasks}`;
-    if (checkCompletion && totalTasks > 0 && completedTaskes === totalTasks) {
+    progressNumber.textContent = `${completedTasks} / ${totalTasks}`;
+
+    if (checkCompletion && totalTasks > 0 && completedTasks === totalTasks) {
       confettiOptions();
       completedMessage.textContent = "Congratulations! All tasks completed!";
       completedMessage.classList.add("show");
@@ -33,87 +68,149 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 3000);
     }
   };
-  const saveTasksToLocalStorage = () => {
-    const tasks = [];
-    tasklist.querySelectorAll("li").forEach((li) => {
-      const text = li.querySelector(".task-text").textContent;
-      const completed = li.querySelector(".task-checkbox").checked;
-      tasks.push({ text, completed });
-    });
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  };
-  const loadTasksFromLocalStorage = () => {
-    const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-    tasks.forEach((task) => addTask(task.text, task.completed, false));
-    toggleEmptyState();
-    updateProgress();
-  };
-  const addTask = (text, completed = false, checkCompletion = true) => {
-    const taskText = text || taskInput.value.trim();
-    if (!taskText) {
-      errorMessage.textContent = "Please enter a task.";
-      errorMessage.style.display = "block";
-      return;
-    }
 
-    taskInput.value = "";
-    errorMessage.style.display = "none";
+  // --- FIREBASE: Data Load kora ---
+  const loadTasksFromFirebase = async () => {
+    try {
+      // console.log("loadTasksFromFirebase: currentUser =", auth?.currentUser);
+      tasklist.innerHTML = ""; // Purono list clear kora
+      const q = query(collection(db, "tasks"), orderBy("createdAt", "asc"));
+      let querySnapshot = await getDocs(q);
+      // console.log(
+      //   "loadTasksFromFirebase: ordered query returned",
+      //   querySnapshot.size,
+      //   "docs",
+      // );
+
+      // Fallback: if nothing returned with orderBy, try without ordering
+      if (!querySnapshot.size) {
+        console.log(
+          "No documents returned with orderBy(createdAt). Trying without orderBy.",
+        );
+        querySnapshot = await getDocs(collection(db, "tasks"));
+        console.log(
+          "loadTasksFromFirebase: fallback query returned",
+          querySnapshot.size,
+          "docs",
+        );
+      }
+
+      querySnapshot.docs.reverse().forEach((docSnap) => {
+        const data = docSnap.data() || {};
+        // console.log("doc:", docSnap.id, data);
+        const li = renderTask(data.text || "(no text)", !!data.completed, docSnap.id);
+        tasklist.appendChild(li);
+      });
+      toggleEmptyState();
+      updateProgress(false);
+    } catch (err) {
+      // console.error("loadTasksFromFirebase error:", err);
+    }
+  };
+  const auth = getAuth(app);
+
+  // --- UI: Screen e Task dekhano ---
+  const renderTask = (text, completed, id) => {
     const li = document.createElement("li");
+    li.setAttribute("data-id", id);
+    if (completed) li.classList.add("completed");
+
     li.innerHTML = ` 
-        <input type="checkbox" class="task-checkbox" ${completed ? "checked" : ""}>
-        <span class="task-text">${taskText}</span>
-        <div class="task-buttons">
-          <button class="edit-btn"><i class="fas fa-edit"></i></button>
-          <button class="delete-btn"><i class="fas fa-trash"></i></button>
-        </div>
-        `;
+          <input type="checkbox" class="task-checkbox" ${completed ? "checked" : ""}>
+          <span class="task-text">${text}</span>
+          <div class="task-buttons">
+            <button class="edit-btn"><i class="fas fa-edit"></i></button>
+            <button class="delete-btn"><i class="fas fa-trash"></i></button>
+          </div>
+      `;
+
     const checkbox = li.querySelector(".task-checkbox");
     const editBtn = li.querySelector(".edit-btn");
-    if (completed) {
-      li.classList.add("completed");
-      editBtn.disabled = true;
-      editBtn.style.opacity = "0.5";
-      editBtn.style.pointerEvents = "none";
-    }
-    checkbox.addEventListener("change", () => {
+    const deleteBtn = li.querySelector(".delete-btn");
+
+    // Ensure initial UI matches `completed` state on render/reload
+    checkbox.checked = !!completed;
+    editBtn.disabled = !!completed;
+    editBtn.classList.toggle('isChecked', !!completed);
+
+    // Checkbox update in Firebase
+    checkbox.addEventListener("change", async () => {
       const isChecked = checkbox.checked;
       li.classList.toggle("completed", isChecked);
       editBtn.disabled = isChecked;
-      editBtn.style.opacity = isChecked ? "0.5" : "1";
-      editBtn.style.pointerEvents = isChecked ? "none" : "auto";
+      editBtn.classList.toggle("isChecked", isChecked);
+
+      const taskRef = doc(db, "tasks", id);
+      await updateDoc(taskRef, { completed: isChecked });
       updateProgress();
-      saveTasksToLocalStorage();
-    });
-    editBtn.addEventListener("click", () => {
-      if (!checkbox.checked) {
-        taskInput.value = li.querySelector("span").textContent;
-        li.remove();
-        toggleEmptyState();
-        updateProgress(false);
-        saveTasksToLocalStorage();
-      }
     });
 
-    li.querySelector(".delete-btn").addEventListener("click", () => {
+    // Delete from Firebase
+    deleteBtn.addEventListener("click", async () => {
+      await deleteDoc(doc(db, "tasks", id));
       li.remove();
       toggleEmptyState();
       updateProgress();
-      saveTasksToLocalStorage();
     });
-    tasklist.appendChild(li);
+
+    // Edit logic
+    editBtn.addEventListener("click", () => {
+      taskInput.value = text;
+      deleteBtn.click(); // Delete old, save as new later
+    });
+
+    return li;
+  };
+
+  // --- FIREBASE: Notun Task Add kora ---
+  const addTask = async () => {
+    const taskText = taskInput.value.trim();
+    if (!taskText) {
+      errorMessage.textContent = "Please enter a task.";
+      errorMessage.style.display = "block";
+      errorMessage.classList.add("show");
+      setTimeout(() => {
+        errorMessage.classList.remove("show");
+      }, 2000);
+      return;
+    }
+
+    const docRef = await addDoc(collection(db, "tasks"), {
+      text: taskText,
+      completed: false,
+      createdAt: serverTimestamp(),
+    });
+
+    const li = renderTask(taskText, false, docRef.id);
+    tasklist.prepend(li);
     taskInput.value = "";
     toggleEmptyState();
-    updateProgress(checkCompletion);
-    saveTasksToLocalStorage();
+    updateProgress();
   };
-  addTaskBtn.addEventListener("click", () => addTask());
-  taskInput.addEventListener("keypress", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
+
+  addTaskBtn.addEventListener("click", addTask);
+  taskInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
       addTask();
     }
   });
-  loadTasksFromLocalStorage();
+
+  // Sign in anonymously so Firestore requests are authenticated.
+  // Make sure your Firestore rules allow authenticated reads/writes
+  // (example rule: `allow read, write: if request.auth != null;`).
+  signInAnonymously(auth).catch((err) => {
+    console.error("Auth sign-in failed:", err);
+  });
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // console.log("Signed in anonymously as", user.uid);
+      loadTasksFromFirebase(); // now safe to access Firestore
+    } else {
+      console.log("No auth user");
+    }
+  });
 });
 
 const confettiOptions = () => {
